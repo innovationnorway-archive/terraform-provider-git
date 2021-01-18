@@ -1,23 +1,47 @@
-package git
+package provider
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/go-git/go-billy/v5/memfs"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/go-git/go-git/v5/storage/memory"
 	version "github.com/hashicorp/go-version"
-	"golang.org/x/crypto/ssh"
 )
 
-type RepoParams struct {
-	URL  string
-	Path string
-	Ref  plumbing.ReferenceName
-	Auth transport.AuthMethod
+type repoParams struct {
+	URL   string
+	Path  string
+	Ref   plumbing.ReferenceName
+	Auth  transport.AuthMethod
+	Depth int
+}
+
+func getRepo(ctx context.Context, r repoParams) (*git.Repository, error) {
+	if r.URL != "" {
+		options := git.CloneOptions{
+			URL:           r.URL,
+			Auth:          r.Auth,
+			ReferenceName: r.Ref,
+			SingleBranch:  true,
+			Depth:         r.Depth,
+		}
+
+		return git.CloneContext(ctx, memory.NewStorage(), memfs.New(), &options)
+	}
+
+	p, err := findGitDir(r.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return git.PlainOpen(p)
 }
 
 func getRef(repo *git.Repository, refName plumbing.ReferenceName) (*plumbing.Reference, error) {
@@ -26,22 +50,6 @@ func getRef(repo *git.Repository, refName plumbing.ReferenceName) (*plumbing.Ref
 	}
 
 	return repo.Head()
-}
-
-func getRepo(r RepoParams) (*git.Repository, error) {
-	if r.URL != "" {
-		options := git.CloneOptions{
-			URL:           r.URL,
-			Auth:          r.Auth,
-			ReferenceName: r.Ref,
-			SingleBranch:  true,
-			Depth:         1,
-		}
-
-		return git.Clone(memory.NewStorage(), memfs.New(), &options)
-	}
-
-	return git.PlainOpen(r.Path)
 }
 
 func getRemoteURL(repo *git.Repository) string {
@@ -106,32 +114,21 @@ func getLatestTag(tags []string) string {
 	return tags[0]
 }
 
-func getSSHKey(key string, ignoreHostKey bool) (*gitssh.PublicKeys, error) {
-	auth, err := gitssh.NewPublicKeys(gitssh.DefaultUsername, []byte(key), "")
-	if err != nil {
-		return nil, err
+func findGitDir(d string) (string, error) {
+	if d == "" {
+		d, _ = os.Getwd()
 	}
-
-	if ignoreHostKey {
-		auth.HostKeyCallbackHelper = gitssh.HostKeyCallbackHelper{
-			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	for d != string(os.PathSeparator) {
+		p := filepath.Join(d, ".git")
+		if stat, err := os.Stat(p); err != nil {
+			if !os.IsNotExist(err) {
+				return "", err
+			}
+		} else if stat.IsDir() {
+			return d, nil
 		}
+
+		d = filepath.Dir(d)
 	}
-
-	return auth, nil
-}
-
-func getSSHKeyFromFile(keyFile string, ignoreHostKey bool) (*gitssh.PublicKeys, error) {
-	auth, err := gitssh.NewPublicKeysFromFile(gitssh.DefaultUsername, keyFile, "")
-	if err != nil {
-		return nil, err
-	}
-
-	if ignoreHostKey {
-		auth.HostKeyCallbackHelper = gitssh.HostKeyCallbackHelper{
-			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		}
-	}
-
-	return auth, nil
+	return "", fmt.Errorf("not found: %s", d)
 }

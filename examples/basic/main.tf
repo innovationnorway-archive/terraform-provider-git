@@ -8,7 +8,7 @@ terraform {
 }
 
 data "git_repository" "example" {
-  url = "https://github.com/innovationnorway/terraform-provider-git.git"
+  path = "../../"
 }
 
 output "repository" {
