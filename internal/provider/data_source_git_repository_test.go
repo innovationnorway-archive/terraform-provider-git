@@ -1,4 +1,4 @@
-package git
+package provider
 
 import (
 	"fmt"
@@ -75,7 +75,7 @@ func TestAccDataSourceGitRepository_new(t *testing.T) {
 }
 
 func TestAccDataSourceGitRepository_path(t *testing.T) {
-	url := "https://github.com/innovationnorway/terraform-git-module-acctest.git"
+	url := "https://github.com/Pango-inc/terraform-provider-git-acctest"
 	dir, err := ioutil.TempDir("", "acctest-*")
 	if err != nil {
 		t.Fatal(err)
@@ -95,9 +95,9 @@ func TestAccDataSourceGitRepository_path(t *testing.T) {
 			{
 				Config: testAccDataSourceGitRepositoryPathConfig(path),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/innovationnorway/terraform-git-module-acctest.git"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "master"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "750e948880ebe167eba524dded790e8b9a79d01d"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "main"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "cbf5acfeb030e099ab700ddbcfb43b5148c5fd6f"),
 				),
 			},
 		},
@@ -105,8 +105,8 @@ func TestAccDataSourceGitRepository_path(t *testing.T) {
 }
 
 func TestAccDataSourceGitRepository_branch(t *testing.T) {
-	url := "https://github.com/innovationnorway/terraform-git-module-acctest.git"
-	branch := "master"
+	url := "https://github.com/Pango-inc/terraform-provider-git-acctest"
+	branch := "main"
 
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
@@ -114,9 +114,9 @@ func TestAccDataSourceGitRepository_branch(t *testing.T) {
 			{
 				Config: testAccDataSourceGitRepositoryBranchConfig(url, branch),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/innovationnorway/terraform-git-module-acctest.git"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "master"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "750e948880ebe167eba524dded790e8b9a79d01d"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "main"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "cbf5acfeb030e099ab700ddbcfb43b5148c5fd6f"),
 				),
 			},
 		},
@@ -124,8 +124,8 @@ func TestAccDataSourceGitRepository_branch(t *testing.T) {
 }
 
 func TestAccDataSourceGitRepository_tag(t *testing.T) {
-	url := "https://github.com/innovationnorway/terraform-git-module-acctest.git"
-	tag := "v0.1.0"
+	url := "https://github.com/Pango-inc/terraform-provider-git-acctest"
+	tag := "v0.0.0-acctest"
 
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
@@ -133,9 +133,9 @@ func TestAccDataSourceGitRepository_tag(t *testing.T) {
 			{
 				Config: testAccDataSourceGitRepositoryTagConfig(url, tag),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/innovationnorway/terraform-git-module-acctest.git"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "tag", "v0.1.0"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "750e948880ebe167eba524dded790e8b9a79d01d"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "tag", "v0.0.0-acctest"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "cbf5acfeb030e099ab700ddbcfb43b5148c5fd6f"),
 				),
 			},
 		},

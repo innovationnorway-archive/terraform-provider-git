@@ -3,13 +3,13 @@ package main
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/innovationnorway/terraform-provider-git/internal/git"
+	"github.com/Pango-Inc/terraform-provider-git/internal/provider"
 )
 
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
 		ProviderFunc: func() *schema.Provider {
-			return git.Provider()
+			return provider.Provider()
 		},
 	})
 }
