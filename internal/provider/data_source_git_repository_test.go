@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 	"time"
 
@@ -97,7 +98,146 @@ func TestAccDataSourceGitRepository_path(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
 					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "main"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "cbf5acfeb030e099ab700ddbcfb43b5148c5fd6f"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "31cb862f1587ef7826e2885e1c85055fe4193a1c"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceGitRepository_subpath(t *testing.T) {
+	url := "https://github.com/Pango-inc/terraform-provider-git-acctest"
+	relative_path := "infra/environment"
+	dir, err := ioutil.TempDir("", "acctest-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = git.PlainClone(dir, false, &git.CloneOptions{
+		URL: url,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	path := filepath.ToSlash(filepath.Join(dir, relative_path))
+
+	testsCWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(testsCWD)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+
+			os.Chdir(path)
+		},
+
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: `data git_repository "test" {}`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "main"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "31cb862f1587ef7826e2885e1c85055fe4193a1c"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "relative_path", "infra/environment"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceGitRepository_cantFindRepo(t *testing.T) {
+	dir, err := ioutil.TempDir("", "acctest-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	path := filepath.ToSlash(dir)
+
+	testsCWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(testsCWD)
+
+	r := regexp.MustCompile("unable to find repository: repository does not exist")
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			os.Chdir(path)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      `data git_repository "test" {}`,
+				ExpectError: r,
+			},
+		},
+	})
+}
+
+func TestAccDataSourceGitRepository_clean(t *testing.T) {
+	url := "https://github.com/Pango-inc/terraform-provider-git-acctest"
+	dir, err := ioutil.TempDir("", "acctest-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = git.PlainClone(dir, false, &git.CloneOptions{
+		URL: url,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	path := filepath.ToSlash(dir)
+
+	resource.Test(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceGitRepositoryPathConfig(path),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "main"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "31cb862f1587ef7826e2885e1c85055fe4193a1c"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "clean", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceGitRepository_durty(t *testing.T) {
+	url := "https://github.com/Pango-inc/terraform-provider-git-acctest"
+	dir, err := ioutil.TempDir("", "acctest-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = git.PlainClone(dir, false, &git.CloneOptions{
+		URL: url,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Create(filepath.Join(dir, "test.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(dir)
+	path := filepath.ToSlash(dir)
+
+	resource.Test(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceGitRepositoryPathConfig(path),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "main"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "31cb862f1587ef7826e2885e1c85055fe4193a1c"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "clean", "false"),
 				),
 			},
 		},
@@ -116,7 +256,7 @@ func TestAccDataSourceGitRepository_branch(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
 					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "main"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "cbf5acfeb030e099ab700ddbcfb43b5148c5fd6f"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "31cb862f1587ef7826e2885e1c85055fe4193a1c"),
 				),
 			},
 		},
@@ -135,7 +275,7 @@ func TestAccDataSourceGitRepository_tag(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
 					resource.TestCheckResourceAttr("data.git_repository.test", "tag", "v0.0.0-acctest"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "cbf5acfeb030e099ab700ddbcfb43b5148c5fd6f"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "31cb862f1587ef7826e2885e1c85055fe4193a1c"),
 				),
 			},
 		},
