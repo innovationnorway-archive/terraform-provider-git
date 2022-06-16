@@ -246,7 +246,7 @@ func TestAccDataSourceGitRepository_durty(t *testing.T) {
 
 func TestAccDataSourceGitRepository_branch(t *testing.T) {
 	url := "https://github.com/Pango-inc/terraform-provider-git-acctest"
-	branch := "main"
+	branch := "another-branch"
 
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
@@ -255,8 +255,8 @@ func TestAccDataSourceGitRepository_branch(t *testing.T) {
 				Config: testAccDataSourceGitRepositoryBranchConfig(url, branch),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.git_repository.test", "url", "https://github.com/Pango-inc/terraform-provider-git-acctest"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "main"),
-					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "31cb862f1587ef7826e2885e1c85055fe4193a1c"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "branch", "another-branch"),
+					resource.TestCheckResourceAttr("data.git_repository.test", "commit_sha", "5e9038bb400438461c3ea63850a9052ac827a1eb"),
 				),
 			},
 		},
