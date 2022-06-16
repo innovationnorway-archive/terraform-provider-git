@@ -2,6 +2,8 @@
 
 [2022.06.10] Fork of `innovationnorway/terraform-provider-git` to have a proper Darwin/arm build. Must be switched back to upstream after [Support for darwin_arm64](https://github.com/innovationnorway/terraform-provider-git/issues/69) would resolved
 
+[2022.06.16] Add fetchure: searching git repo in CWD and recursively above it
+
 ![](https://github.com/innovationnorway/terraform-provider-git/workflows/test/badge.svg)
 
 ## Requirements
