@@ -1,9 +1,13 @@
-package git
+package provider
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
+	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -26,7 +30,6 @@ func dataSourceGitRepository() *schema.Resource {
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
-				ExactlyOneOf: []string{"path", "url"},
 			},
 
 			"branch": {
@@ -46,6 +49,16 @@ func dataSourceGitRepository() *schema.Resource {
 
 			"commit_sha": {
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"relative_path": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"clean": {
+				Type:     schema.TypeBool,
 				Computed: true,
 			},
 		},
@@ -75,9 +88,41 @@ func dataSourceGitRepositoryRead(ctx context.Context, d *schema.ResourceData, me
 		params.Ref = plumbing.NewTagReferenceName(v.(string))
 	}
 
-	repo, err := getRepo(params)
-	if err != nil {
-		return diag.Errorf("unable to get repository: %s", err)
+	// Try to find the repository in current direcrory and above if not found
+	var repo *git.Repository
+	if params.Path == "" && params.URL == "" {
+		path, err := os.Getwd()
+		initialPath := path
+		if err != nil {
+			return diag.Errorf("failed to get current directory: %s", err)
+		}
+
+		for {
+			if path == "/" {
+				return diag.Errorf("unable to find repository: %s", err)
+			}
+			params.Path = path
+
+			repo, err = getRepo(params)
+			if err != nil {
+				path = filepath.Dir(path)
+				continue
+			} else {
+				v, err := filepath.Rel(path, initialPath)
+				if err != nil {
+					tflog.Debug(ctx, "error relative_path", map[string]interface{}{"relative_path": v})
+				} else {
+					d.Set("relative_path", v)
+				}
+				break
+			}
+		}
+	} else {
+		var err error
+		repo, err = getRepo(params)
+		if err != nil {
+			return diag.Errorf("unable to find repository: %s", err)
+		}
 	}
 
 	ref, err := getRef(repo, params.Ref)
@@ -105,6 +150,12 @@ func dataSourceGitRepositoryRead(ctx context.Context, d *schema.ResourceData, me
 			d.Set("tag", getLatestTag(tags))
 		}
 	}
+
+	clean, err := IsClean(repo)
+	if err != nil {
+		return diag.Errorf("unable to get status: %s", err)
+	}
+	d.Set("clean", clean)
 
 	d.Set("commit_sha", ref.Hash().String())
 	d.SetId(ref.Name().String())

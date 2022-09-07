@@ -1,4 +1,4 @@
-package git
+package provider
 
 import (
 	"crypto/tls"

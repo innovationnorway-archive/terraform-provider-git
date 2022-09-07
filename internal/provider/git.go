@@ -1,4 +1,4 @@
-package git
+package provider
 
 import (
 	"sort"
@@ -85,6 +85,18 @@ func getTags(repo *git.Repository, ref *plumbing.Reference) ([]string, error) {
 	}
 
 	return tags, nil
+}
+
+func IsClean(repo *git.Repository) (bool, error) {
+	wt, err := repo.Worktree()
+	if err != nil {
+		return false, err
+	}
+	status, err := wt.Status()
+	if err != nil {
+		return false, err
+	}
+	return status.IsClean(), nil
 }
 
 func getLatestTag(tags []string) string {
